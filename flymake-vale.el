@@ -102,10 +102,6 @@
 (defvar-local flymake-vale--proc nil
   "A buffer-local variable handling the vale process for flymake.")
 
-(defvar-local flymake-vale--buf-checked '(nil . 0)
-  "Current state of the source buffer.
-If the entire buffer has been checked this will be t")
-
 (defvar-local flymake-vale-file-ext nil
   "A buffer-local variable providing file extension to Vale.
 The extension is necessary for Vale's format-sensitive parsing.")
@@ -132,7 +128,9 @@ The extension is necessary for Vale's format-sensitive parsing.")
                                   (not (bolp)))
                        (forward-line (1- .Line)))
                      (forward-char (1- (car .Span)))
-                     (cons (point) (+ (point) (length .Match))))))
+                     (cons (point) (if (zerop (length .Match))
+                                       (line-end-position)
+                                     (+ (point) (length .Match)))))))
           (push (flymake-make-diagnostic
                  flymake-vale--source-buffer
                  (car pos) (cdr pos)
@@ -205,17 +203,12 @@ Converts output into a sequence of flymake error structs."
 	       (err (flymake-vale--proc-error-p output proc source
 						report-fn)))
 	  (unwind-protect
-	      (cond
-	       ((and proc-current (stringp err))
-		(funcall report-fn :panic :explanation err))
-	       (proc-current
-		(funcall report-fn (flymake-vale--output-to-errors
-				    output source start)
-                         :region (cons start end))
-                (unless (car flymake-vale--buf-checked)
-                  (setf (cdr flymake-vale--buf-checked) end))
-                (when (eq end (point-max))
-                  (setf (car flymake-vale--buf-checked) t))))
+	       (cond
+	         ((and proc-current (stringp err))
+		  (funcall report-fn :panic :explanation err))
+	         (proc-current
+		  (funcall report-fn (flymake-vale--output-to-errors
+				      output source start))))
 	    (when (buffer-name proc-buf)
 	      (kill-buffer proc-buf))
 	    (when proc-current
@@ -241,36 +234,19 @@ Converts output into a sequence of flymake error structs."
 
 (defun flymake-vale--setup ()
   "Used to reset the checked state of the current buffer."
-  (setf (car flymake-vale--buf-checked) nil
-        (cdr flymake-vale--buf-checked) 0
-        flymake-vale--proc nil))
+  (setq-local flymake-vale--proc nil))
 
-(defun flymake-vale--check-state (args)
-  "Determine what region has changed and needs to be checked.
-Function acceps ARGS sent from `flymake' describing potential changes."
-  (if (plist-member args :recent-changes)
-      (let ((changes (or (plist-get args :recent-changes) 'none))
-            (start (or (flymake-vale--sentence-point
-                        (plist-get args :changes-start) -1)
-		       (point-min)))
-            (end (or (flymake-vale--sentence-point
-		      (plist-get args :changes-end) 1)
-                     (point-max))))
-        (list changes start end))
-    (if (car flymake-vale--buf-checked)
-        (list 'save
-	      (flymake-vale--sentence-point (point) -2)
-	      (flymake-vale--sentence-point (point) 2))
-      (list 'start (max (point-min) (cdr flymake-vale--buf-checked))
-            (point-max)))))
+(defun flymake-vale--check-state (_args)
+  "Return the full buffer range to check."
+  (list 'start (point-min) (point-max)))
 
 (defun flymake-vale--checker (report-fn &rest args)
   "Diagnostic checker function with REPORT-FN."
   (setq-local flymake-vale--source-buffer (current-buffer))
   ;; kill and cleanup any ongoing processes. This is meant to be more
   ;; performant instead of checking when the vale process finishes.
-  (when-let ((proc flymake-vale--proc)
-	     (proc-buf (process-buffer flymake-vale--proc)))
+  (when-let* ((proc flymake-vale--proc)
+	      (proc-buf (process-buffer flymake-vale--proc)))
     (when (process-live-p proc)
       (delete-process flymake-vale--proc))
     (when (buffer-name proc-buf)
@@ -278,7 +254,7 @@ Function acceps ARGS sent from `flymake' describing potential changes."
     (setq-local flymake-vale--proc nil))
   (pcase-let* ((a args)
 	       (`(,state ,start ,end)
-		(flymake-vale--check-state a)))
+		 (flymake-vale--check-state a)))
     (flymake-vale--start report-fn
 			 flymake-vale--source-buffer
 			 state start end)))
