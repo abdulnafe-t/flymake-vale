@@ -151,7 +151,7 @@ Converts output into a sequence of flymake error structs."
          (errors (apply 'append (mapcar 'cdr full-results))))
     (with-current-buffer source (flymake-vale--check-all errors start))))
 
-(defun flymake-vale--proc-error-p (output proc source report-fn)
+(defun flymake-vale--proc-error-p (output _proc _source _report-fn)
   "Check if Vale returned in error in OUTPUT."
   (pcase output
     ;; empty string most likely means process was closed by a new
@@ -181,7 +181,7 @@ Converts output into a sequence of flymake error structs."
 
 ;;; Flymake
 
-(defun flymake-vale--start (report-fn source state start end)
+(defun flymake-vale--start (report-fn source _state start end)
   "Run vale on the current buffer's contents."
   (setq
    flymake-vale--proc
@@ -233,7 +233,7 @@ Converts output into a sequence of flymake error structs."
           (if (> arg 0) (point-max) (point-min)))))))
 
 (defun flymake-vale--setup ()
-  "Used to reset the checked state of the current buffer."
+  "Used to reset the process of the current buffer."
   (setq-local flymake-vale--proc nil))
 
 (defun flymake-vale--check-state (_args)
