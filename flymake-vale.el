@@ -232,8 +232,7 @@ A positive ARG will return end point ARG number sentence following PT."
     (save-excursion
       sentence-end-double-space
       (goto-char pt)
-      (funcall (or (and (boundp 'forward-sentence-function)
-                        forward-sentence-function)
+      (funcall (or (bound-and-true-p forward-sentence-function)
                    #'forward-sentence)
                arg))))
 
