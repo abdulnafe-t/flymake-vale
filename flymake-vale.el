@@ -1,4 +1,4 @@
-;;; flymake-vale.el --- flymake integration for vale -*- lexical-binding: t; -*-
+;;; flymake-vale.el --- Flymake integration for vale -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2022 Trey Peacock
 ;;
@@ -7,10 +7,10 @@
 ;; Created: December 19, 2021
 ;; Modified: December 19, 2021
 ;; Version: 0.0.2
-;; Keywords:
+;; Keywords: tools
 ;; Homepage: https://github.com/tpeacock19/new
 ;; Package-Requires: ((emacs "27.1") (flymake "0.22")
-;;  (let-alist "1.0.4") (compat "29.1.4.4"))
+;;  (let-alist "1.0.4") (compat "31.0"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,7 +34,6 @@
 ;;
 ;;; Code:
 
-(require 'compat)
 (eval-when-compile
   (require 'let-alist))
 (require 'json)
