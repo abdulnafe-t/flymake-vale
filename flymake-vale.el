@@ -223,17 +223,21 @@ Converts output into a sequence of flymake error structs."
   (process-send-region flymake-vale--proc start end)
   (process-send-eof flymake-vale--proc))
 
-(defun flymake-vale--sentence-point (pt arg)
-  "Wrapper for `forward-sentence-function'.
-A positive ARG will return beginning point ARG number sentence preceding PT.
-A positive ARG will return end point ARG number sentence following PT."
-  (when pt
-    (save-excursion
-      sentence-end-double-space
-      (goto-char pt)
-      (funcall (or (bound-and-true-p forward-sentence-function)
-                   #'forward-sentence)
-               arg))))
+ (defun flymake-vale--sentence-point (pt arg)
+   "Move ARG sentences from PT and return the resulting position.
+ A negative ARG moves backward; a positive ARG moves forward.
+ Returns `point-min' or `point-max' when hitting buffer boundaries."
+   (when pt
+     (save-excursion
+       (goto-char pt)
+       (condition-case nil
+           (progn
+             (funcall (or (bound-and-true-p forward-sentence-function)
+                          #'forward-sentence)
+                      arg)
+             (point))
+         ((beginning-of-buffer end-of-buffer)
+          (if (> arg 0) (point-max) (point-min)))))))
 
 (defun flymake-vale--setup ()
   "Used to reset the checked state of the current buffer."
